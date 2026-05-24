@@ -248,12 +248,12 @@ function CameraRig({
 }) {
   useFrame((state) => {
     const s = scrollY.get();
-    // Hero: inside tunnel; mid: pull out to see ribbon; end: close up on sheet
-    const z = THREE.MathUtils.lerp(1.5, 4.2, s);
-    const y = THREE.MathUtils.lerp(0, 0.2, s) + mouse.current.y * 0.15;
-    const x = mouse.current.x * 0.3;
+    // Camera stays on the tunnel axis (X=0, Y=0) and dollies inward.
+    const z = THREE.MathUtils.lerp(2.2, 5.5, s);
+    const y = mouse.current.y * 0.18;
+    const x = mouse.current.x * 0.22;
     state.camera.position.set(x, y, z);
-    state.camera.lookAt(0, 0, -2);
+    state.camera.lookAt(0, 0, -8);
   });
   return null;
 }
