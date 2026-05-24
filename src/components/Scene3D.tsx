@@ -183,28 +183,37 @@ function CarbonTunnel({ scrollY }: { scrollY: MotionValue<number> }) {
     if (tunnel.current) {
       const mat = tunnel.current.material as THREE.MeshStandardMaterial;
       if (mat.map) {
-        mat.map.offset.x = -t * 0.04 - s * 1.5;
+        // Scroll the weave along the tunnel length to enhance the fly-through feel.
+        mat.map.offset.y = -t * 0.06 - s * 1.8;
+        mat.map.offset.x = t * 0.02;
       }
-      tunnel.current.rotation.z = t * 0.05 + s * 0.8;
+      // Tunnel is aligned along Z; spin around its own axis (Z) for cinematic motion.
+      tunnel.current.rotation.z = t * 0.04 + s * 0.5;
     }
     if (rings.current) {
+      const count = rings.current.children.length;
       rings.current.children.forEach((ring, i) => {
         const r = ring as THREE.Mesh;
-        // move rings toward camera, recycle
-        r.position.z = ((i / rings.current.children.length) * 40 + t * 4 + s * 20) % 40 - 30;
+        const spacing = 40 / count;
+        // Rings travel toward the camera along Z and recycle.
+        r.position.z = ((i * spacing + t * 4 + s * 20) % 40) - 32;
         const mat = r.material as THREE.MeshBasicMaterial;
-        const fade = Math.max(0, 1 - Math.abs(r.position.z + 5) / 15);
+        const fade = Math.max(0, 1 - Math.abs(r.position.z + 4) / 14);
         mat.opacity = fade * 0.9;
       });
     }
   });
 
-  const ringCount = 14;
+  const ringCount = 16;
   return (
     <group position={[0, 0, 0]}>
-      {/* Tunnel interior */}
-      <mesh ref={tunnel} rotation={[0, 0, 0]} position={[0, 0, -10]}>
-        <cylinderGeometry args={[3.2, 3.2, 60, 64, 1, true]} />
+      {/* Tunnel interior — rotated so its length runs along world Z */}
+      <mesh
+        ref={tunnel}
+        rotation={[Math.PI / 2, 0, 0]}
+        position={[0, 0, -10]}
+      >
+        <cylinderGeometry args={[3.2, 3.2, 60, 96, 1, true]} />
         <meshStandardMaterial
           map={weaveTexture}
           side={THREE.BackSide}
@@ -214,11 +223,11 @@ function CarbonTunnel({ scrollY }: { scrollY: MotionValue<number> }) {
         />
       </mesh>
 
-      {/* Glowing edge rings */}
+      {/* Glowing edge rings — face the camera (lie in XY plane, normal = Z) */}
       <group ref={rings}>
         {Array.from({ length: ringCount }).map((_, i) => (
-          <mesh key={i} rotation={[Math.PI / 2, 0, 0]} position={[0, 0, 0]}>
-            <torusGeometry args={[3.15, 0.012, 8, 96]} />
+          <mesh key={i} rotation={[0, 0, 0]} position={[0, 0, 0]}>
+            <torusGeometry args={[3.15, 0.014, 8, 128]} />
             <meshBasicMaterial color="#ffb066" transparent opacity={0.7} />
           </mesh>
         ))}
