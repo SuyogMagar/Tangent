@@ -254,22 +254,18 @@ export function Scene3D() {
   const { scrollYProgress } = useScroll();
   const mouse = useRef({ x: 0, y: 0 });
 
+  if (typeof window !== "undefined") {
+    // Track mouse globally; canvas div is pointer-events-none.
+    (window as any).__tangentMouseBound ||
+      (window.addEventListener("mousemove", (e: MouseEvent) => {
+        mouse.current.x = (e.clientX / window.innerWidth) * 2 - 1;
+        mouse.current.y = -((e.clientY / window.innerHeight) * 2 - 1);
+      }),
+      ((window as any).__tangentMouseBound = true));
+  }
+
   return (
-    <div
-      className="fixed inset-0 -z-0 pointer-events-none"
-      onPointerMove={(e) => {
-        const nx = (e.clientX / window.innerWidth) * 2 - 1;
-        const ny = -((e.clientY / window.innerHeight) * 2 - 1);
-        mouse.current.x = nx;
-        mouse.current.y = ny;
-      }}
-      onMouseMove={(e) => {
-        const nx = (e.clientX / window.innerWidth) * 2 - 1;
-        const ny = -((e.clientY / window.innerHeight) * 2 - 1);
-        mouse.current.x = nx;
-        mouse.current.y = ny;
-      }}
-    >
+    <div className="fixed inset-0 -z-0 pointer-events-none">
       <Canvas
         camera={{ position: [0, 0, 1.5], fov: 55 }}
         dpr={[1, 2]}
