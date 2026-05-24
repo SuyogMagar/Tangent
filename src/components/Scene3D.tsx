@@ -106,14 +106,13 @@ function CarbonRibbon({
     });
 
     if (group.current) {
-      // Global twist with scroll
-      const twist = s * Math.PI * 1.4;
-      group.current.rotation.z = twist * 0.4;
-      group.current.rotation.x =
-        -0.15 + mouse.current.y * 0.25 + Math.sin(t * 0.3) * 0.05;
-      group.current.rotation.y = mouse.current.x * 0.35 + s * 0.6;
-      group.current.position.z = -1 + s * 1.2;
-      group.current.position.y = 0.1 - s * 0.3;
+      // Ribbon length runs along world Z (down the tunnel axis).
+      // Base orientation: rotate Y by 90° so the plane's long X-axis becomes Z.
+      const twist = s * Math.PI * 1.6;
+      group.current.rotation.y = Math.PI / 2 + mouse.current.x * 0.15 + s * 0.2;
+      group.current.rotation.x = mouse.current.y * 0.12 + Math.sin(t * 0.3) * 0.03;
+      group.current.rotation.z = twist * 0.5; // twist around the tunnel axis
+      group.current.position.set(0, 0, -4 + s * 2);
     }
   });
 
@@ -184,28 +183,37 @@ function CarbonTunnel({ scrollY }: { scrollY: MotionValue<number> }) {
     if (tunnel.current) {
       const mat = tunnel.current.material as THREE.MeshStandardMaterial;
       if (mat.map) {
-        mat.map.offset.x = -t * 0.04 - s * 1.5;
+        // Scroll the weave along the tunnel length to enhance the fly-through feel.
+        mat.map.offset.y = -t * 0.06 - s * 1.8;
+        mat.map.offset.x = t * 0.02;
       }
-      tunnel.current.rotation.z = t * 0.05 + s * 0.8;
+      // Tunnel is aligned along Z; spin around its own axis (Z) for cinematic motion.
+      tunnel.current.rotation.z = t * 0.04 + s * 0.5;
     }
     if (rings.current) {
+      const count = rings.current.children.length;
       rings.current.children.forEach((ring, i) => {
         const r = ring as THREE.Mesh;
-        // move rings toward camera, recycle
-        r.position.z = ((i / rings.current.children.length) * 40 + t * 4 + s * 20) % 40 - 30;
+        const spacing = 40 / count;
+        // Rings travel toward the camera along Z and recycle.
+        r.position.z = ((i * spacing + t * 4 + s * 20) % 40) - 32;
         const mat = r.material as THREE.MeshBasicMaterial;
-        const fade = Math.max(0, 1 - Math.abs(r.position.z + 5) / 15);
+        const fade = Math.max(0, 1 - Math.abs(r.position.z + 4) / 14);
         mat.opacity = fade * 0.9;
       });
     }
   });
 
-  const ringCount = 14;
+  const ringCount = 16;
   return (
     <group position={[0, 0, 0]}>
-      {/* Tunnel interior */}
-      <mesh ref={tunnel} rotation={[0, 0, 0]} position={[0, 0, -10]}>
-        <cylinderGeometry args={[3.2, 3.2, 60, 64, 1, true]} />
+      {/* Tunnel interior — rotated so its length runs along world Z */}
+      <mesh
+        ref={tunnel}
+        rotation={[Math.PI / 2, 0, 0]}
+        position={[0, 0, -10]}
+      >
+        <cylinderGeometry args={[3.2, 3.2, 60, 96, 1, true]} />
         <meshStandardMaterial
           map={weaveTexture}
           side={THREE.BackSide}
@@ -215,11 +223,11 @@ function CarbonTunnel({ scrollY }: { scrollY: MotionValue<number> }) {
         />
       </mesh>
 
-      {/* Glowing edge rings */}
+      {/* Glowing edge rings — face the camera (lie in XY plane, normal = Z) */}
       <group ref={rings}>
         {Array.from({ length: ringCount }).map((_, i) => (
-          <mesh key={i} rotation={[Math.PI / 2, 0, 0]} position={[0, 0, 0]}>
-            <torusGeometry args={[3.15, 0.012, 8, 96]} />
+          <mesh key={i} rotation={[0, 0, 0]} position={[0, 0, 0]}>
+            <torusGeometry args={[3.15, 0.014, 8, 128]} />
             <meshBasicMaterial color="#ffb066" transparent opacity={0.7} />
           </mesh>
         ))}
@@ -240,12 +248,12 @@ function CameraRig({
 }) {
   useFrame((state) => {
     const s = scrollY.get();
-    // Hero: inside tunnel; mid: pull out to see ribbon; end: close up on sheet
-    const z = THREE.MathUtils.lerp(1.5, 4.2, s);
-    const y = THREE.MathUtils.lerp(0, 0.2, s) + mouse.current.y * 0.15;
-    const x = mouse.current.x * 0.3;
+    // Camera stays on the tunnel axis (X=0, Y=0) and dollies inward.
+    const z = THREE.MathUtils.lerp(2.2, 5.5, s);
+    const y = mouse.current.y * 0.18;
+    const x = mouse.current.x * 0.22;
     state.camera.position.set(x, y, z);
-    state.camera.lookAt(0, 0, -2);
+    state.camera.lookAt(0, 0, -8);
   });
   return null;
 }
