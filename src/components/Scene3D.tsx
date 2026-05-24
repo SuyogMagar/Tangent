@@ -106,14 +106,13 @@ function CarbonRibbon({
     });
 
     if (group.current) {
-      // Global twist with scroll
-      const twist = s * Math.PI * 1.4;
-      group.current.rotation.z = twist * 0.4;
-      group.current.rotation.x =
-        -0.15 + mouse.current.y * 0.25 + Math.sin(t * 0.3) * 0.05;
-      group.current.rotation.y = mouse.current.x * 0.35 + s * 0.6;
-      group.current.position.z = -1 + s * 1.2;
-      group.current.position.y = 0.1 - s * 0.3;
+      // Ribbon length runs along world Z (down the tunnel axis).
+      // Base orientation: rotate Y by 90° so the plane's long X-axis becomes Z.
+      const twist = s * Math.PI * 1.6;
+      group.current.rotation.y = Math.PI / 2 + mouse.current.x * 0.15 + s * 0.2;
+      group.current.rotation.x = mouse.current.y * 0.12 + Math.sin(t * 0.3) * 0.03;
+      group.current.rotation.z = twist * 0.5; // twist around the tunnel axis
+      group.current.position.set(0, 0, -4 + s * 2);
     }
   });
 
