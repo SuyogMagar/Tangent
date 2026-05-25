@@ -21,26 +21,25 @@ export function Hero() {
   const opacity = useTransform(scrollYProgress, [0, 0.8], [1, 0]);
 
   return (
-    <section id="top" ref={ref} className="relative min-h-screen flex items-center px-6">
+    <section id="top" ref={ref} className="relative min-h-screen flex items-center">
       <motion.div
         style={{ y, opacity }}
-        className="max-w-7xl mx-auto w-full relative z-10 grid grid-cols-12 gap-6 items-center"
+        className="w-full relative z-10 px-8 md:px-16 lg:px-24 flex justify-start"
       >
-        {/* LEFT column */}
-        <div className="col-span-12 md:col-span-4 text-left">
+        <div className="max-w-2xl text-left">
           <motion.p
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.4 }}
+            initial={{ opacity: 0, y: 10, filter: "blur(10px)" }}
+            animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
+            transition={{ duration: 0.8, delay: 0.4 }}
             className="text-xs uppercase tracking-[0.3em] text-primary mb-6"
           >
             Advanced Materials · Est. 2014
           </motion.p>
           <motion.h1
-            initial={{ opacity: 0, y: 30 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 1.1, ease: [0.16, 1, 0.3, 1], delay: 0.5 }}
-            className="text-5xl md:text-6xl lg:text-7xl font-bold leading-[0.95]"
+            initial={{ opacity: 0, y: 40, filter: "blur(12px)", scale: 0.95 }}
+            animate={{ opacity: 1, y: 0, filter: "blur(0px)", scale: 1 }}
+            transition={{ duration: 1.2, ease: [0.16, 1, 0.3, 1], delay: 0.5 }}
+            className="text-5xl md:text-7xl lg:text-[5.5rem] xl:text-[6.5rem] font-bold leading-[0.9]"
           >
             Engineered <span className="text-gradient">at the edge</span> of matter.
           </motion.h1>
@@ -62,40 +61,6 @@ export function Hero() {
             >
               See process
             </a>
-          </motion.div>
-        </div>
-
-        {/* CENTER spacer reserved for the 3D thread orb */}
-        <div className="hidden md:block md:col-span-4" aria-hidden="true" />
-
-        {/* RIGHT column */}
-        <div className="col-span-12 md:col-span-4 text-right md:pl-6">
-          <motion.p
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.7 }}
-            className="text-xs uppercase tracking-[0.3em] text-accent mb-6"
-          >
-            One fiber · Infinite applications
-          </motion.p>
-          <motion.p
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ delay: 1 }}
-            className="text-lg text-muted-foreground md:ml-auto md:max-w-xs"
-          >
-            Tangent crafts aerospace-grade carbon fiber and high-purity specialty
-            chemicals for the industries shaping tomorrow.
-          </motion.p>
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ delay: 1.4 }}
-            className="mt-10 flex flex-col items-end gap-2 text-sm text-muted-foreground"
-          >
-            <div className="font-mono text-foreground/80">T-1100 / 12K</div>
-            <div>6.4 GPa tensile · 350 GPa modulus</div>
-            <div>ISO-9001 · 99.99% purity</div>
           </motion.div>
         </div>
       </motion.div>
