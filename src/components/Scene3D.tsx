@@ -1,43 +1,49 @@
 import { Canvas, useFrame } from "@react-three/fiber";
 import { Environment } from "@react-three/drei";
-import { useRef, Suspense, useMemo } from "react";
+import { useRef, Suspense, useMemo, useEffect, useState } from "react";
 import * as THREE from "three";
-import { useScroll, MotionValue } from "framer-motion";
+import { useScroll, MotionValue, motion, AnimatePresence } from "framer-motion";
 
 /* ------------------------------------------------------------------ */
-/*  Carbon Thread Orb → Infinite Unravel                               */
-/*  - Sphere of wound carbon thread rises from below                   */
-/*  - Slowly spins                                                     */
-/*  - Unravels from center as user scrolls                             */
-/*  - Single continuous fiber extends to the right                     */
-/*  - Fiber morphs through ribbon / weave patterns                     */
+/*  Carbon Thread Orb — wound spherical thread, no tail.               */
+/*  - Pops up from below, spins FAST for ~2.5s, eases into slow spin   */
+/*  - Annotation pointer appears once spin slows                       */
+/*  - On scroll, orb slides RIGHT and morphs per section               */
 /* ------------------------------------------------------------------ */
 
-const PATH_SAMPLES = 360;
-const TUBULAR = 340;
+const PATH_SAMPLES = 420;
+const TUBULAR = 380;
 const RADIAL = 10;
 
 function easeOutCubic(x: number) {
   return 1 - Math.pow(1 - x, 3);
 }
+function easeInOutCubic(x: number) {
+  return x < 0.5 ? 4 * x * x * x : 1 - Math.pow(-2 * x + 2, 3) / 2;
+}
 
 function ThreadOrb({
   scrollY,
   mouse,
+  onSettled,
 }: {
   scrollY: MotionValue<number>;
   mouse: React.MutableRefObject<{ x: number; y: number }>;
+  onSettled: () => void;
 }) {
   const group = useRef<THREE.Group>(null!);
   const mesh = useRef<THREE.Mesh>(null!);
   const ghost = useRef<THREE.Mesh>(null!);
   const startRef = useRef<number | null>(null);
+  const lastTRef = useRef<number | null>(null);
+  const settledRef = useRef(false);
+  const spinRef = useRef(0);
+
   const tmpPoints = useMemo(
     () => Array.from({ length: PATH_SAMPLES }, () => new THREE.Vector3()),
     [],
   );
 
-  // Material — dark carbon with warm specular kick.
   const material = useMemo(
     () =>
       new THREE.MeshStandardMaterial({
@@ -54,86 +60,91 @@ function ThreadOrb({
     if (startRef.current === null) startRef.current = t;
     const elapsed = t - startRef.current;
 
-    // Rise-from-below intro (1.6s ease-out).
-    const intro = Math.min(1, elapsed / 1.6);
+    // Intro rise (1.4s)
+    const intro = Math.min(1, elapsed / 1.4);
     const introE = easeOutCubic(intro);
+
+    // Spin profile:
+    //  0 .. 1.4s : ramp up to fast
+    //  1.4 .. 3.8s : FAST spin
+    //  3.8 .. 5.4s : ease down to slow
+    //  > 5.4s : steady slow
+    let spinSpeed: number;
+    if (elapsed < 1.4) {
+      spinSpeed = THREE.MathUtils.lerp(0.3, 3.2, easeOutCubic(elapsed / 1.4));
+    } else if (elapsed < 3.8) {
+      spinSpeed = 3.2;
+    } else if (elapsed < 5.4) {
+      const k = (elapsed - 3.8) / 1.6;
+      spinSpeed = THREE.MathUtils.lerp(3.2, 0.25, easeInOutCubic(k));
+      if (!settledRef.current && k > 0.85) {
+        settledRef.current = true;
+        onSettled();
+      }
+    } else {
+      spinSpeed = 0.25;
+    }
+    const dt = lastTRef.current === null ? 0.016 : Math.min(0.05, t - lastTRef.current);
+    lastTRef.current = t;
+    spinRef.current += spinSpeed * dt;
 
     const s = THREE.MathUtils.clamp(scrollY.get(), 0, 1);
 
-    // What fraction of the thread still wraps the sphere?
-    // At s=0: ~92% wrapped. At s=1: ~12% wrapped (rest streams right).
-    const wrapEnd = THREE.MathUtils.lerp(0.92, 0.12, easeOutCubic(s));
-    const R = THREE.MathUtils.lerp(1.0, 0.85, s); // sphere shrinks slightly as it unravels
-    const windings = 22; // # of spiral wraps around the sphere
-
-    // Extension length grows with scroll.
-    const extLen = THREE.MathUtils.lerp(2.2, 7.5, s);
-    // Ribbon flare grows with scroll → morphs the fiber outward.
-    const flare = s;
-
-    // Release point on sphere (where the fiber leaves the orb): equatorial right side.
-    // Spin the sphere → release point migrates, but we compute it from spiral end so it's continuous.
-    const spin = t * 0.18 + s * Math.PI * 0.4;
+    // Shape morph driven by scroll: 0 sphere, 0.33 oblate, 0.66 capsule, 1 tight knot
+    const shape = s;
+    const R = THREE.MathUtils.lerp(1.0, 0.78, shape);
+    const oblate = 1 - shape * 0.55; // squash Y as we scroll
+    const elongate = 1 + shape * 0.4; // stretch X subtly
+    const knot = shape; // adds twist deformation
+    const windings = THREE.MathUtils.lerp(22, 34, shape);
 
     for (let i = 0; i < PATH_SAMPLES; i++) {
       const u = i / (PATH_SAMPLES - 1);
       const p = tmpPoints[i];
 
-      if (u <= wrapEnd) {
-        // Spherical spiral (Fibonacci-ish wrap).
-        const v = u / wrapEnd; // 0..1 along the wound portion
-        const phi = Math.acos(1 - 2 * v); // 0..PI pole-to-pole
-        const theta = windings * Math.PI * 2 * v + spin;
-        p.set(
-          R * Math.sin(phi) * Math.cos(theta),
-          R * Math.cos(phi),
-          R * Math.sin(phi) * Math.sin(theta),
-        );
-      } else {
-        // Extension: leaves the equator on the right and flows outward.
-        const v = (u - wrapEnd) / (1 - wrapEnd); // 0..1 along extension
-        // Anchor at sphere equator-right so it visibly "uncoils".
-        const anchorX = R;
-        const anchorY = 0;
-        const anchorZ = 0;
-        // Outward flowing curve.
-        const x = anchorX + v * extLen;
-        const wave = Math.sin(v * Math.PI * 3 + t * 1.1) * 0.35 * v;
-        const wave2 = Math.cos(v * Math.PI * 4 + t * 0.7) * 0.25 * v;
-        const y = anchorY + wave * (0.5 + flare * 0.8);
-        const z = anchorZ + wave2 * (0.4 + flare * 0.9);
-        // Ribbon flare: gentle vertical fanning the further it travels.
-        const fan = Math.sin(v * Math.PI) * flare * 0.45;
-        p.set(x, y + fan * 0.2, z - fan * 0.1);
+      // Closed spherical spiral — no extension/tail.
+      const phi = Math.acos(1 - 2 * u);
+      const theta = windings * Math.PI * 2 * u;
+      let x = R * Math.sin(phi) * Math.cos(theta) * elongate;
+      let y = R * Math.cos(phi) * oblate;
+      let z = R * Math.sin(phi) * Math.sin(theta);
+
+      // Knot deformation as we scroll deeper
+      if (knot > 0.01) {
+        const a = Math.sin(u * Math.PI * 4 + spinRef.current * 0.6) * 0.15 * knot;
+        const b = Math.cos(u * Math.PI * 3 + spinRef.current * 0.4) * 0.12 * knot;
+        x += a;
+        y += b * 0.6;
+        z += a * 0.5;
       }
+      p.set(x, y, z);
     }
 
-    // Build a fresh tube along the path.
-    const curve = new THREE.CatmullRomCurve3(tmpPoints, false, "catmullrom", 0.5);
-    const radius = THREE.MathUtils.lerp(0.022, 0.03, s);
-    const newGeom = new THREE.TubeGeometry(curve, TUBULAR, radius, RADIAL, false);
+    const curve = new THREE.CatmullRomCurve3(tmpPoints, true, "catmullrom", 0.5);
+    const radius = THREE.MathUtils.lerp(0.022, 0.028, shape);
+    const newGeom = new THREE.TubeGeometry(curve, TUBULAR, radius, RADIAL, true);
     if (mesh.current) {
       mesh.current.geometry.dispose();
       mesh.current.geometry = newGeom;
     }
 
-    // Ghost wireframe sphere — fades out as the orb unravels.
     if (ghost.current) {
       const gm = ghost.current.material as THREE.MeshBasicMaterial;
-      gm.opacity = (1 - s) * 0.08 * introE;
-      ghost.current.scale.setScalar(R);
+      gm.opacity = 0.06 * introE * (1 - s * 0.7);
+      ghost.current.scale.set(R * elongate, R * oblate, R);
     }
 
-    // Group transforms: rise from below + mouse parallax + slow drift.
     if (group.current) {
       const riseY = THREE.MathUtils.lerp(-3.4, 0, introE);
+      // Slide to the right as user scrolls.
+      const baseX = THREE.MathUtils.lerp(0, 1.9, easeInOutCubic(s));
       group.current.position.set(
-        mouse.current.x * 0.18,
-        riseY + mouse.current.y * 0.12 + Math.sin(t * 0.6) * 0.04,
+        baseX + mouse.current.x * 0.12,
+        riseY + mouse.current.y * 0.1 + Math.sin(t * 0.6) * 0.03,
         0,
       );
-      group.current.rotation.y = mouse.current.x * 0.25 + t * 0.05;
-      group.current.rotation.x = -mouse.current.y * 0.18;
+      group.current.rotation.y = spinRef.current + mouse.current.x * 0.2;
+      group.current.rotation.x = Math.sin(spinRef.current * 0.3) * 0.15 - mouse.current.y * 0.15;
       group.current.scale.setScalar(introE);
     }
   });
@@ -143,18 +154,14 @@ function ThreadOrb({
       <mesh ref={mesh} material={material} castShadow>
         <bufferGeometry />
       </mesh>
-      {/* Faint wireframe orb hint */}
       <mesh ref={ghost}>
         <sphereGeometry args={[1, 48, 32]} />
-        <meshBasicMaterial color="#ffb066" wireframe transparent opacity={0.08} />
+        <meshBasicMaterial color="#ffb066" wireframe transparent opacity={0.06} />
       </mesh>
     </group>
   );
 }
 
-/* ------------------------------------------------------------------ */
-/*  Camera                                                             */
-/* ------------------------------------------------------------------ */
 function CameraRig({
   scrollY,
   mouse,
@@ -164,11 +171,11 @@ function CameraRig({
 }) {
   useFrame((state) => {
     const s = scrollY.get();
-    const z = THREE.MathUtils.lerp(4.2, 6.2, s);
-    const x = THREE.MathUtils.lerp(0, 1.1, s) + mouse.current.x * 0.2;
-    const y = mouse.current.y * 0.18;
+    const z = THREE.MathUtils.lerp(4.2, 5.6, s);
+    const x = mouse.current.x * 0.15;
+    const y = mouse.current.y * 0.12;
     state.camera.position.lerp(new THREE.Vector3(x, y, z), 0.06);
-    state.camera.lookAt(THREE.MathUtils.lerp(0, 1.6, s), 0, 0);
+    state.camera.lookAt(0, 0, 0);
   });
   return null;
 }
@@ -176,35 +183,124 @@ function CameraRig({
 export function Scene3D() {
   const { scrollYProgress } = useScroll();
   const mouse = useRef({ x: 0, y: 0 });
+  const [settled, setSettled] = useState(false);
+  const [scrolled, setScrolled] = useState(false);
 
-  if (typeof window !== "undefined" && !(window as any).__tangentMouseBound) {
-    window.addEventListener("mousemove", (e: MouseEvent) => {
+  useEffect(() => {
+    const onMove = (e: MouseEvent) => {
       mouse.current.x = (e.clientX / window.innerWidth) * 2 - 1;
       mouse.current.y = -((e.clientY / window.innerHeight) * 2 - 1);
-    });
-    (window as any).__tangentMouseBound = true;
-  }
+    };
+    const onScroll = () => setScrolled(window.scrollY > 60);
+    window.addEventListener("mousemove", onMove);
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => {
+      window.removeEventListener("mousemove", onMove);
+      window.removeEventListener("scroll", onScroll);
+    };
+  }, []);
+
+  const showLabel = settled && !scrolled;
 
   return (
-    <div className="fixed inset-0 -z-0 pointer-events-none">
-      <Canvas
-        camera={{ position: [0, 0, 4.2], fov: 50 }}
-        dpr={[1, 2]}
-        gl={{ antialias: true, alpha: true }}
-      >
-        <Suspense fallback={null}>
-          <CameraRig scrollY={scrollYProgress} mouse={mouse} />
-          <ambientLight intensity={0.4} />
-          <directionalLight position={[4, 5, 4]} intensity={1.3} color="#ffd9a8" />
-          <directionalLight position={[-4, -2, -3]} intensity={0.6} color="#5fb8d6" />
-          <pointLight position={[2, 0, 2]} intensity={1.6} color="#ffb066" distance={10} />
-          <pointLight position={[-2, 1, 1]} intensity={1.0} color="#5fb8d6" distance={8} />
+    <>
+      <div className="fixed inset-0 -z-0 pointer-events-none">
+        <Canvas
+          camera={{ position: [0, 0, 4.2], fov: 50 }}
+          dpr={[1, 2]}
+          gl={{ antialias: true, alpha: true }}
+        >
+          <Suspense fallback={null}>
+            <CameraRig scrollY={scrollYProgress} mouse={mouse} />
+            <ambientLight intensity={0.4} />
+            <directionalLight position={[4, 5, 4]} intensity={1.3} color="#ffd9a8" />
+            <directionalLight position={[-4, -2, -3]} intensity={0.6} color="#5fb8d6" />
+            <pointLight position={[2, 0, 2]} intensity={1.6} color="#ffb066" distance={10} />
+            <pointLight position={[-2, 1, 1]} intensity={1.0} color="#5fb8d6" distance={8} />
 
-          <ThreadOrb scrollY={scrollYProgress} mouse={mouse} />
+            <ThreadOrb
+              scrollY={scrollYProgress}
+              mouse={mouse}
+              onSettled={() => setSettled(true)}
+            />
 
-          <Environment preset="warehouse" />
-        </Suspense>
-      </Canvas>
+            <Environment preset="warehouse" />
+          </Suspense>
+        </Canvas>
+      </div>
+
+      {/* Annotation pointer — appears once the orb slows */}
+      <AnnotationPointer show={showLabel} />
+    </>
+  );
+}
+
+function AnnotationPointer({ show }: { show: boolean }) {
+  return (
+    <div className="fixed inset-0 -z-0 pointer-events-none flex items-center justify-center">
+      <AnimatePresence>
+        {show && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.6 }}
+            className="relative w-[520px] h-[520px] max-w-[80vw] max-h-[80vw]"
+          >
+            {/* line */}
+            <svg
+              className="absolute inset-0 w-full h-full overflow-visible"
+              viewBox="0 0 100 100"
+              preserveAspectRatio="none"
+            >
+              <motion.line
+                x1="62"
+                y1="38"
+                x2="92"
+                y2="14"
+                stroke="oklch(0.85 0.13 75)"
+                strokeWidth="0.25"
+                initial={{ pathLength: 0, opacity: 0 }}
+                animate={{ pathLength: 1, opacity: 1 }}
+                transition={{ duration: 0.8, ease: "easeOut" }}
+              />
+              <motion.circle
+                cx="62"
+                cy="38"
+                r="0.8"
+                fill="oklch(0.85 0.13 75)"
+                initial={{ scale: 0 }}
+                animate={{ scale: 1 }}
+                transition={{ delay: 0.7 }}
+              />
+            </svg>
+            {/* label */}
+            <motion.div
+              initial={{ opacity: 0, x: 10 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ delay: 0.85, duration: 0.5 }}
+              className="absolute"
+              style={{ left: "calc(92% + 8px)", top: "10%" }}
+            >
+              <div
+                className="text-[10px] uppercase tracking-[0.35em] text-primary/80"
+                style={{ fontFamily: "'JetBrains Mono', ui-monospace, monospace" }}
+              >
+                Element · C
+              </div>
+              <div
+                className="text-base text-foreground/95 mt-1 whitespace-nowrap"
+                style={{ fontFamily: "'Orbitron', 'Space Grotesk', sans-serif", letterSpacing: "0.08em" }}
+              >
+                Carbon · Atomic No. 6
+              </div>
+              <div className="text-xs text-muted-foreground mt-1 whitespace-nowrap">
+                Foundation of every Tangent carbon fiber.
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
