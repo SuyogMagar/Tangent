@@ -35,6 +35,7 @@ function ThreadOrb({
   const mesh = useRef<THREE.Mesh>(null!);
   const ghost = useRef<THREE.Mesh>(null!);
   const startRef = useRef<number | null>(null);
+  const lastTRef = useRef<number | null>(null);
   const settledRef = useRef(false);
   const spinRef = useRef(0);
 
