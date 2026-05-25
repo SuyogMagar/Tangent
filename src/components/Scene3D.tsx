@@ -84,11 +84,9 @@ function ThreadOrb({
     } else {
       spinSpeed = 0.25;
     }
-    spinRef.current += spinSpeed * state.clock.getDelta() ;
-    // getDelta() can be 0 in some setups; fallback with frame timing:
-    if (!isFinite(spinRef.current) || spinRef.current === 0) {
-      spinRef.current = t * 0.25;
-    }
+    const dt = lastTRef.current === null ? 0.016 : Math.min(0.05, t - lastTRef.current);
+    lastTRef.current = t;
+    spinRef.current += spinSpeed * dt;
 
     const s = THREE.MathUtils.clamp(scrollY.get(), 0, 1);
 
