@@ -115,38 +115,33 @@ export function Hero() {
 export function CarbonSection() {
   return (
     <section id="carbon" className="relative min-h-screen flex items-center px-6 py-32">
-      <div className="max-w-7xl mx-auto w-full grid md:grid-cols-2 gap-16 items-center">
-        <Reveal>
-          <span className="text-xs uppercase tracking-[0.3em] text-accent">01 — Carbon Fiber</span>
-          <h2 className="mt-4 text-5xl md:text-7xl font-bold leading-[1.02]">
-            Lighter than aluminum. Stronger than steel.
-          </h2>
-          <p className="mt-8 text-muted-foreground text-lg max-w-md">
-            Our continuous tow carbon fiber delivers a tensile strength of 6.4 GPa and
-            modulus up to 350 GPa — woven for aerospace, motorsport, and defense.
-          </p>
-          <div className="mt-10 grid grid-cols-3 gap-4">
-            {[
-              { k: "6.4", v: "GPa tensile" },
-              { k: "350", v: "GPa modulus" },
-              { k: "1.8", v: "g/cm³ density" },
-            ].map((s) => (
-              <div key={s.v} className="p-4 rounded-xl bg-card/60 backdrop-blur border border-border/50">
-                <div className="text-3xl font-display font-bold text-gradient">{s.k}</div>
-                <div className="text-xs text-muted-foreground mt-1">{s.v}</div>
-              </div>
-            ))}
-          </div>
-        </Reveal>
-        <Reveal delay={0.2}>
-          <div className="relative aspect-square rounded-2xl carbon-weave border border-border/50 overflow-hidden">
-            <div className="absolute inset-0 bg-gradient-to-tr from-background/80 via-transparent to-primary/10" />
-            <div className="absolute bottom-6 left-6 right-6">
-              <div className="text-xs uppercase tracking-widest text-muted-foreground">Spec sheet</div>
-              <div className="text-2xl font-display mt-1">T-1100 / 12K</div>
+      <div className="max-w-7xl mx-auto w-full grid grid-cols-12 gap-6 items-center">
+        <div className="col-span-12 md:col-span-6 text-left">
+          <Reveal>
+            <span className="text-xs uppercase tracking-[0.3em] text-accent">01 — Carbon Fiber</span>
+            <h2 className="mt-4 text-5xl md:text-7xl font-bold leading-[1.02]">
+              Lighter than aluminum. Stronger than steel.
+            </h2>
+            <p className="mt-8 text-muted-foreground text-lg max-w-md">
+              Our continuous tow carbon fiber delivers a tensile strength of 6.4 GPa and
+              modulus up to 350 GPa — woven for aerospace, motorsport, and defense.
+            </p>
+            <div className="mt-10 grid grid-cols-3 gap-4 max-w-md">
+              {[
+                { k: "6.4", v: "GPa tensile" },
+                { k: "350", v: "GPa modulus" },
+                { k: "1.8", v: "g/cm³ density" },
+              ].map((s) => (
+                <div key={s.v} className="p-4 rounded-xl bg-card/60 backdrop-blur border border-border/50">
+                  <div className="text-3xl font-display font-bold text-gradient">{s.k}</div>
+                  <div className="text-xs text-muted-foreground mt-1">{s.v}</div>
+                </div>
+              ))}
             </div>
-          </div>
-        </Reveal>
+          </Reveal>
+        </div>
+        {/* Right reserved for 3D orb */}
+        <div className="hidden md:block md:col-span-6" aria-hidden="true" />
       </div>
     </section>
   );
@@ -161,29 +156,29 @@ export function ChemicalsSection() {
   ];
   return (
     <section id="chemicals" className="relative min-h-screen flex items-center px-6 py-32">
-      <div className="max-w-7xl mx-auto w-full">
-        <Reveal>
-          <span className="text-xs uppercase tracking-[0.3em] text-accent">02 — Chemicals</span>
-          <h2 className="mt-4 text-5xl md:text-7xl font-bold max-w-3xl leading-[1.02]">
-            Molecules <span className="text-gradient">refined</span> to a vanishing tolerance.
-          </h2>
-        </Reveal>
-        <div className="mt-20 grid md:grid-cols-2 gap-px bg-border/40 rounded-2xl overflow-hidden">
-          {items.map((it, i) => (
-            <Reveal key={it.name} delay={i * 0.08}>
-              <div className="bg-card/70 backdrop-blur p-10 h-full hover:bg-card transition group">
-                <div className="flex items-baseline justify-between">
-                  <div className="text-5xl font-display font-bold text-gradient">0{i + 1}</div>
-                  <div className="text-xs text-muted-foreground uppercase tracking-widest">{it.purity}</div>
+      <div className="max-w-7xl mx-auto w-full grid grid-cols-12 gap-6 items-center">
+        <div className="col-span-12 md:col-span-6 text-left">
+          <Reveal>
+            <span className="text-xs uppercase tracking-[0.3em] text-accent">02 — Chemicals</span>
+            <h2 className="mt-4 text-5xl md:text-6xl font-bold leading-[1.02]">
+              Molecules <span className="text-gradient">refined</span> to a vanishing tolerance.
+            </h2>
+          </Reveal>
+          <div className="mt-12 grid grid-cols-1 sm:grid-cols-2 gap-px bg-border/40 rounded-2xl overflow-hidden max-w-xl">
+            {items.map((it, i) => (
+              <Reveal key={it.name} delay={i * 0.08}>
+                <div className="bg-card/70 backdrop-blur p-6 h-full hover:bg-card transition">
+                  <div className="flex items-baseline justify-between">
+                    <div className="text-3xl font-display font-bold text-gradient">0{i + 1}</div>
+                    <div className="text-[10px] text-muted-foreground uppercase tracking-widest">{it.purity}</div>
+                  </div>
+                  <div className="mt-6 text-lg font-display">{it.name}</div>
                 </div>
-                <div className="mt-12 text-2xl font-display">{it.name}</div>
-                <div className="mt-4 text-sm text-muted-foreground">
-                  Manufactured in our ISO-9001 facility with continuous spectroscopic QA.
-                </div>
-              </div>
-            </Reveal>
-          ))}
+              </Reveal>
+            ))}
+          </div>
         </div>
+        <div className="hidden md:block md:col-span-6" aria-hidden="true" />
       </div>
     </section>
   );
@@ -197,25 +192,28 @@ export function ProcessSection() {
     { n: "04", t: "Surface Treat", d: "Sized for resin compatibility and lab-tested." },
   ];
   return (
-    <section id="process" className="relative px-6 py-32">
-      <div className="max-w-7xl mx-auto">
-        <Reveal>
-          <span className="text-xs uppercase tracking-[0.3em] text-accent">03 — Process</span>
-          <h2 className="mt-4 text-5xl md:text-7xl font-bold max-w-3xl leading-[1.02]">
-            From precursor to perfection.
-          </h2>
-        </Reveal>
-        <div className="mt-20 grid md:grid-cols-4 gap-6">
-          {steps.map((s, i) => (
-            <Reveal key={s.n} delay={i * 0.1}>
-              <div className="p-6 rounded-xl border border-border/50 bg-card/40 backdrop-blur h-full">
-                <div className="text-sm text-primary font-mono">{s.n}</div>
-                <div className="mt-6 text-2xl font-display">{s.t}</div>
-                <div className="mt-3 text-sm text-muted-foreground">{s.d}</div>
-              </div>
-            </Reveal>
-          ))}
+    <section id="process" className="relative min-h-screen flex items-center px-6 py-32">
+      <div className="max-w-7xl mx-auto w-full grid grid-cols-12 gap-6 items-center">
+        <div className="col-span-12 md:col-span-6 text-left">
+          <Reveal>
+            <span className="text-xs uppercase tracking-[0.3em] text-accent">03 — Process</span>
+            <h2 className="mt-4 text-5xl md:text-6xl font-bold leading-[1.02]">
+              From precursor to perfection.
+            </h2>
+          </Reveal>
+          <div className="mt-12 grid grid-cols-1 sm:grid-cols-2 gap-4 max-w-xl">
+            {steps.map((s, i) => (
+              <Reveal key={s.n} delay={i * 0.1}>
+                <div className="p-6 rounded-xl border border-border/50 bg-card/40 backdrop-blur h-full">
+                  <div className="text-sm text-primary font-mono">{s.n}</div>
+                  <div className="mt-4 text-xl font-display">{s.t}</div>
+                  <div className="mt-2 text-sm text-muted-foreground">{s.d}</div>
+                </div>
+              </Reveal>
+            ))}
+          </div>
         </div>
+        <div className="hidden md:block md:col-span-6" aria-hidden="true" />
       </div>
     </section>
   );
