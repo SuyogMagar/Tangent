@@ -1,5 +1,5 @@
 import { motion, useScroll, useTransform } from "framer-motion";
-import { useRef } from "react";
+import { useRef, useEffect, useState } from "react";
 
 function Reveal({ children, delay = 0 }: { children: React.ReactNode; delay?: number }) {
   return (
@@ -20,55 +20,107 @@ export function Hero() {
   const y = useTransform(scrollYProgress, [0, 1], [0, 200]);
   const opacity = useTransform(scrollYProgress, [0, 0.8], [1, 0]);
 
+  // phase 0: intro/centered, phase 1: moving/settled, phase 2: fully settled (show UI)
+  const [phase, setPhase] = useState(0);
+
+  useEffect(() => {
+    // Start transition to top-left after 2.5s
+    const t1 = setTimeout(() => setPhase(1), 2500);
+    // Show additional UI elements after text is settled (4.0s)
+    const t2 = setTimeout(() => setPhase(2), 4000);
+    return () => { clearTimeout(t1); clearTimeout(t2); };
+  }, []);
+
+  const isCentered = phase === 0;
+
   return (
     <section id="top" ref={ref} className="relative min-h-screen flex items-center">
       <motion.div
         style={{ y, opacity }}
-        className="w-full relative z-10 px-8 md:px-16 lg:px-24 flex justify-start"
+        className={`w-full relative z-10 px-8 md:px-16 lg:px-24 flex ${isCentered ? "justify-center" : "justify-start"}`}
       >
-        <div className="max-w-2xl text-left">
-          <motion.p
-            initial={{ opacity: 0, y: 10, filter: "blur(10px)" }}
-            animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
-            transition={{ duration: 0.8, delay: 0.4 }}
-            className="text-xs uppercase tracking-[0.3em] text-primary mb-6"
-          >
-            Advanced Materials · Est. 2014
-          </motion.p>
-          <motion.h1
-            initial={{ opacity: 0, y: 40, filter: "blur(12px)", scale: 0.95 }}
-            animate={{ opacity: 1, y: 0, filter: "blur(0px)", scale: 1 }}
-            transition={{ duration: 1.2, ease: [0.16, 1, 0.3, 1], delay: 0.5 }}
-            className="text-5xl md:text-7xl lg:text-[5.5rem] xl:text-[6.5rem] font-bold leading-[0.9]"
-          >
-            Engineered <span className="text-gradient">at the edge</span> of matter.
-          </motion.h1>
+        <motion.div 
+          layout
+          transition={{ duration: 1.5, ease: [0.25, 1, 0.15, 1] }} 
+          className="text-left"
+        >
           <motion.div
             initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ delay: 1.3 }}
-            className="mt-10 flex flex-wrap gap-3"
+            animate={{ opacity: phase === 2 ? 1 : 0 }}
+            transition={{ duration: 0.8 }}
+            className="mb-6 h-4"
           >
-            <a
-              href="#carbon"
-              className="px-5 py-3 rounded-full bg-primary text-primary-foreground font-medium shadow-glow hover:scale-[1.02] transition"
-            >
-              Explore materials
-            </a>
-            <a
-              href="#process"
-              className="px-5 py-3 rounded-full border border-border/60 hover:bg-secondary transition"
-            >
-              See process
-            </a>
+            {phase === 2 && (
+              <motion.p
+                initial={{ opacity: 0, y: 10, filter: "blur(10px)" }}
+                animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
+                transition={{ duration: 0.8 }}
+                className="text-xs uppercase tracking-[0.3em] text-primary"
+              >
+                Advanced Materials · Est. 2014
+              </motion.p>
+            )}
           </motion.div>
-        </div>
+          
+          <motion.div layout className="max-w-3xl">
+            <motion.h1
+              layout
+              initial={{ opacity: 0, y: 30, filter: "blur(12px)", scale: 1.0 }}
+              animate={{ 
+                opacity: 1, 
+                y: 0, 
+                filter: "blur(0px)", 
+                scale: isCentered ? 1.0 : 0.85 
+              }}
+              style={{ originX: isCentered ? 0.5 : 0, originY: 0.5 }}
+              transition={{ 
+                layout: { duration: 1.5, ease: [0.25, 1, 0.15, 1] },
+                scale: { duration: 1.5, ease: [0.25, 1, 0.15, 1] },
+                opacity: { duration: 1.4, ease: "easeOut" },
+                filter: { duration: 1.4, ease: "easeOut" },
+                y: { duration: 1.4, ease: "easeOut" }
+              }}
+              className="text-5xl md:text-7xl lg:text-[5.5rem] xl:text-[6.5rem] font-bold leading-[0.9]"
+            >
+              Engineered <span className="text-gradient">at the edge</span> of matter.
+            </motion.h1>
+          </motion.div>
+
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: phase === 2 ? 1 : 0 }}
+            transition={{ duration: 0.8 }}
+            className="mt-10 h-14"
+          >
+            {phase === 2 && (
+              <motion.div
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.8 }}
+                className="flex flex-wrap gap-3"
+              >
+                <a
+                  href="#carbon"
+                  className="px-5 py-3 rounded-full bg-primary text-primary-foreground font-medium shadow-glow hover:scale-[1.02] transition"
+                >
+                  Explore materials
+                </a>
+                <a
+                  href="#process"
+                  className="px-5 py-3 rounded-full border border-border/60 hover:bg-secondary transition"
+                >
+                  See process
+                </a>
+              </motion.div>
+            )}
+          </motion.div>
+        </motion.div>
       </motion.div>
 
       <motion.div
         initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ delay: 1.6 }}
+        animate={{ opacity: phase === 2 ? 1 : 0 }}
+        transition={{ duration: 0.8 }}
         className="absolute bottom-10 inset-x-0 flex justify-center text-xs uppercase tracking-[0.3em] text-muted-foreground"
       >
         Scroll

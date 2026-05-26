@@ -19,7 +19,7 @@ function easeInOutCubic(x: number) {
   return x < 0.5 ? 4 * x * x * x : 1 - Math.pow(-2 * x + 2, 3) / 2;
 }
 
-function HexSphere({
+function MolecularOrb({
   scrollY,
   mouse,
   onSettled,
@@ -29,64 +29,168 @@ function HexSphere({
   onSettled: () => void;
 }) {
   const group = useRef<THREE.Group>(null!);
-  const mesh = useRef<THREE.InstancedMesh>(null!);
-  const ghost = useRef<THREE.Mesh>(null!);
+  const nodesMesh = useRef<THREE.InstancedMesh>(null!);
+  const rodsMesh = useRef<THREE.InstancedMesh>(null!);
   const startRef = useRef<number | null>(null);
   const lastTRef = useRef<number | null>(null);
   const settledRef = useRef(false);
   const spinRef = useRef(0);
 
-  const COUNT = 360;
   const dummy = useMemo(() => new THREE.Object3D(), []);
 
-  // Fibonacci sphere point distribution
-  const basePoints = useMemo(() => {
-    const pts = [];
-    const phi = Math.PI * (3 - Math.sqrt(5));
-    for (let i = 0; i < COUNT; i++) {
-      const y = 1 - (i / (COUNT - 1)) * 2;
-      const radiusAtY = Math.sqrt(1 - y * y);
-      const theta = phi * i;
-      const x = Math.cos(theta) * radiusAtY;
-      const z = Math.sin(theta) * radiusAtY;
-      pts.push(new THREE.Vector3(x, y, z));
+  // Generate dual graph of geodesic sphere for fullerene structure
+  const { nodes, rods } = useMemo(() => {
+    // 1. Create a high-detail Icosahedron (geodesic sphere)
+    const radius = 1.0;
+    const detail = 5; // Yields 720 faces (nodes in dual graph). Dense nanostructure.
+    const geo = new THREE.IcosahedronGeometry(radius, detail);
+    
+    let pos: ArrayLike<number> = geo.attributes.position.array;
+    let idx: ArrayLike<number> | null = geo.index ? geo.index.array : null;
+
+    if (!idx) {
+      // Build index manually if unindexed
+      const newPos: number[] = [];
+      const newIdx: number[] = [];
+      const vMap = new Map<string, number>();
+      let vCount = 0;
+      
+      for (let i = 0; i < pos.length; i += 3) {
+        const x = pos[i], y = pos[i+1], z = pos[i+2];
+        const key = `${x.toFixed(4)},${y.toFixed(4)},${z.toFixed(4)}`;
+        if (!vMap.has(key)) {
+          vMap.set(key, vCount++);
+          newPos.push(x, y, z);
+        }
+        newIdx.push(vMap.get(key)!);
+      }
+      pos = newPos;
+      idx = newIdx;
     }
-    return pts;
+
+    const computedNodes: THREE.Vector3[] = [];
+    const edgeMap = new Map<string, number[]>();
+
+    for (let i = 0; i < idx.length; i += 3) {
+      const a = idx[i], b = idx[i + 1], c = idx[i + 2];
+      const vA = new THREE.Vector3(pos[a * 3], pos[a * 3 + 1], pos[a * 3 + 2]);
+      const vB = new THREE.Vector3(pos[b * 3], pos[b * 3 + 1], pos[b * 3 + 2]);
+      const vC = new THREE.Vector3(pos[c * 3], pos[c * 3 + 1], pos[c * 3 + 2]);
+      
+      // Node is the centroid of the face, projected to sphere surface
+      const center = vA.clone().add(vB).add(vC).divideScalar(3).normalize().multiplyScalar(radius);
+      computedNodes.push(center);
+
+      const faceIdx = i / 3;
+      const faceVertices = [a, b, c];
+      
+      // Map edges to find adjacent faces
+      for (let j = 0; j < 3; j++) {
+        const v1 = faceVertices[j];
+        const v2 = faceVertices[(j + 1) % 3];
+        const min = Math.min(v1, v2);
+        const max = Math.max(v1, v2);
+        const key = `${min}-${max}`;
+        
+        if (!edgeMap.has(key)) {
+          edgeMap.set(key, []);
+        }
+        edgeMap.get(key)!.push(faceIdx);
+      }
+    }
+
+    const computedRods: { p1: THREE.Vector3; p2: THREE.Vector3 }[] = [];
+    edgeMap.forEach((faces) => {
+      // For a closed manifold, every edge is shared by exactly 2 faces
+      if (faces.length === 2) {
+        computedRods.push({
+          p1: computedNodes[faces[0]],
+          p2: computedNodes[faces[1]],
+        });
+      }
+    });
+
+    return { nodes: computedNodes, rods: computedRods };
   }, []);
 
-  const material = useMemo(
+  // Materials for the premium carbon fiber look
+  const nodeMaterial = useMemo(
     () =>
       new THREE.MeshStandardMaterial({
-        color: "#111115",
-        metalness: 0.95,
-        roughness: 0.2,
+        color: "#1a1a1c",
+        metalness: 1.0,
+        roughness: 0.15,
+        envMapIntensity: 2.0,
+      }),
+    [],
+  );
+
+  const rodMaterial = useMemo(
+    () =>
+      new THREE.MeshStandardMaterial({
+        color: "#0a0a0c",
+        metalness: 0.8,
+        roughness: 0.3,
         envMapIntensity: 1.5,
       }),
     [],
   );
 
-  const hexGeometry = useMemo(() => {
-    // A hexagon cylinder
-    return new THREE.CylinderGeometry(0.075, 0.075, 0.015, 6);
-  }, []);
+  const nodeGeometry = useMemo(() => new THREE.SphereGeometry(0.04, 16, 16), []);
+  const rodGeometry = useMemo(() => new THREE.CylinderGeometry(0.02, 0.02, 1, 8), []);
+
+  // Initialize instance matrices
+  useEffect(() => {
+    if (nodesMesh.current) {
+      nodes.forEach((node, i) => {
+        dummy.position.copy(node);
+        dummy.scale.setScalar(1);
+        dummy.rotation.set(0, 0, 0);
+        dummy.updateMatrix();
+        nodesMesh.current.setMatrixAt(i, dummy.matrix);
+      });
+      nodesMesh.current.instanceMatrix.needsUpdate = true;
+    }
+
+    if (rodsMesh.current) {
+      rods.forEach((rod, i) => {
+        const { p1, p2 } = rod;
+        const center = new THREE.Vector3().addVectors(p1, p2).multiplyScalar(0.5);
+        const length = p1.distanceTo(p2);
+        
+        dummy.position.copy(center);
+        dummy.lookAt(p2);
+        dummy.rotateX(Math.PI / 2); // align cylinder with Z axis from lookAt
+        dummy.scale.set(1, length, 1);
+        dummy.updateMatrix();
+        rodsMesh.current.setMatrixAt(i, dummy.matrix);
+      });
+      rodsMesh.current.instanceMatrix.needsUpdate = true;
+    }
+  }, [nodes, rods, dummy]);
 
   useFrame((state) => {
     const t = state.clock.getElapsedTime();
     if (startRef.current === null) startRef.current = t;
     const elapsed = t - startRef.current;
 
+    const DELAY = 4.0;
+    const activeElapsed = Math.max(0, elapsed - DELAY);
+
     // Intro rise (1.4s)
-    const intro = Math.min(1, elapsed / 1.4);
+    const intro = Math.min(1, activeElapsed / 1.4);
     const introE = easeOutCubic(intro);
 
     // Spin profile
     let spinSpeed: number;
-    if (elapsed < 0.8) {
-      spinSpeed = THREE.MathUtils.lerp(0.3, 12.0, easeOutCubic(elapsed / 0.8));
-    } else if (elapsed < 1.5) {
+    if (activeElapsed === 0) {
+      spinSpeed = 0;
+    } else if (activeElapsed < 0.8) {
+      spinSpeed = THREE.MathUtils.lerp(0.3, 12.0, easeOutCubic(activeElapsed / 0.8));
+    } else if (activeElapsed < 1.5) {
       spinSpeed = 12.0;
-    } else if (elapsed < 2.5) {
-      const k = (elapsed - 1.5) / 1.0;
+    } else if (activeElapsed < 2.5) {
+      const k = (activeElapsed - 1.5) / 1.0;
       spinSpeed = THREE.MathUtils.lerp(12.0, 0.25, easeInOutCubic(k));
       if (!settledRef.current && k > 0.85) {
         settledRef.current = true;
@@ -100,56 +204,6 @@ function HexSphere({
     spinRef.current += spinSpeed * dt;
 
     const s = THREE.MathUtils.clamp(scrollY.get(), 0, 1);
-    
-    // Shape morph driven by scroll (disabled, stays a sphere)
-    const shape = s;
-    const R = 1.0;
-    const oblate = 1.0;
-    const elongate = 1.0;
-    const knot = 0.0;
-
-    if (mesh.current) {
-      const center = new THREE.Vector3(0, 0, 0);
-      for (let i = 0; i < COUNT; i++) {
-        const p = basePoints[i];
-
-        let x = p.x * R * elongate;
-        let y = p.y * R * oblate;
-        let z = p.z * R;
-
-        if (knot > 0.01) {
-          const u = (p.y + 1) / 2;
-          const a = Math.sin(u * Math.PI * 4 + spinRef.current * 0.6) * 0.15 * knot;
-          const b = Math.cos(u * Math.PI * 3 + spinRef.current * 0.4) * 0.12 * knot;
-          x += a;
-          y += b * 0.6;
-          z += a * 0.5;
-        }
-
-        dummy.position.set(x, y, z);
-        
-        // Orient the hexagon face to point outward from center
-        dummy.lookAt(center);
-        dummy.rotateX(Math.PI / 2);
-        
-        // Add subtle rotation based on scroll for extra cool effect
-        dummy.rotateY(spinRef.current * 0.1 + p.x * knot);
-        
-        // Scale down slightly to look denser or fragmented during morph
-        const scale = 1 - knot * 0.15;
-        dummy.scale.setScalar(scale);
-
-        dummy.updateMatrix();
-        mesh.current.setMatrixAt(i, dummy.matrix);
-      }
-      mesh.current.instanceMatrix.needsUpdate = true;
-    }
-
-    if (ghost.current) {
-      const gm = ghost.current.material as THREE.MeshBasicMaterial;
-      gm.opacity = 0.04 * introE * (1 - s * 0.5);
-      ghost.current.scale.set(R * elongate * 0.98, R * oblate * 0.98, R * 0.98);
-    }
 
     if (group.current) {
       const riseY = THREE.MathUtils.lerp(-3.4, 0, introE);
@@ -168,11 +222,8 @@ function HexSphere({
 
   return (
     <group ref={group}>
-      <instancedMesh ref={mesh} args={[hexGeometry, material, COUNT]} castShadow receiveShadow />
-      <mesh ref={ghost}>
-        <sphereGeometry args={[1, 48, 32]} />
-        <meshBasicMaterial color="#ffb066" wireframe transparent opacity={0.04} />
-      </mesh>
+      <instancedMesh ref={nodesMesh} args={[nodeGeometry, nodeMaterial, nodes.length]} castShadow receiveShadow />
+      <instancedMesh ref={rodsMesh} args={[rodGeometry, rodMaterial, rods.length]} castShadow receiveShadow />
     </group>
   );
 }
@@ -233,7 +284,7 @@ export function Scene3D() {
             <pointLight position={[2, 0, 2]} intensity={1.6} color="#ffb066" distance={10} />
             <pointLight position={[-2, 1, 1]} intensity={1.0} color="#5fb8d6" distance={8} />
 
-            <HexSphere
+            <MolecularOrb
               scrollY={scrollYProgress}
               mouse={mouse}
               onSettled={() => setSettled(true)}
