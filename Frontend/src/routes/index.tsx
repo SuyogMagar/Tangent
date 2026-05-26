@@ -7,7 +7,7 @@ import {
   ChemicalsSection,
   ProcessSection,
   CTASection,
-} from "@/components/Sections";
+} from "@/pages/Home";
 
 export const Route = createFileRoute("/")({
   component: Index,
