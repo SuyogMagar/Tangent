@@ -19,6 +19,56 @@ function easeInOutCubic(x: number) {
   return x < 0.5 ? 4 * x * x * x : 1 - Math.pow(-2 * x + 2, 3) / 2;
 }
 
+const SCRAMBLE_CHARS = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%&*+";
+
+export function ScrambleText({ text, show, delay = 0, className, style }: { text: string; show: boolean; delay?: number; className?: string; style?: React.CSSProperties }) {
+  const [displayText, setDisplayText] = useState(text);
+
+  useEffect(() => {
+    if (!show) {
+      setDisplayText(text);
+      return;
+    }
+
+    let timeout: ReturnType<typeof setTimeout>;
+    let frameId: number;
+    let iteration = 0;
+    
+    timeout = setTimeout(() => {
+      const animate = () => {
+        setDisplayText(() =>
+          text
+            .split("")
+            .map((char, index) => {
+              if (char === " " || char === "·") return char;
+              if (index < iteration) {
+                return text[index];
+              }
+              return SCRAMBLE_CHARS[Math.floor(Math.random() * SCRAMBLE_CHARS.length)];
+            })
+            .join("")
+        );
+        
+        if (iteration >= text.length) {
+          cancelAnimationFrame(frameId);
+        } else {
+          iteration += 0.5;
+          frameId = requestAnimationFrame(animate);
+        }
+      };
+      
+      frameId = requestAnimationFrame(animate);
+    }, delay * 1000);
+
+    return () => {
+      clearTimeout(timeout);
+      cancelAnimationFrame(frameId);
+    };
+  }, [text, show, delay]);
+
+  return <span className={className} style={style}>{displayText}</span>;
+}
+
 function MolecularOrb({
   scrollY,
   mouse,
@@ -387,8 +437,8 @@ function AnnotationPointers({ show }: { show: boolean }) {
         {/* Pointer 1: Carbon element - Bottom Left */}
         <CustomPointer
           show={show}
-          startX={36}
-          startY={64}
+          startX={28}
+          startY={72}
           endX={-5}
           endY={95}
           labelRight="calc(105% + 16px)"
@@ -396,18 +446,20 @@ function AnnotationPointers({ show }: { show: boolean }) {
           alignRight={true}
         >
           <div className="w-[300px]">
-            <div
-              className="text-[10px] uppercase tracking-[0.35em] text-primary/80"
+            <ScrambleText
+              text="Element · C"
+              show={show}
+              delay={0.85}
+              className="block text-[11px] font-bold uppercase tracking-[0.35em] text-primary"
               style={{ fontFamily: "'JetBrains Mono', ui-monospace, monospace" }}
-            >
-              Element · C
-            </div>
-            <div
-              className="text-base text-foreground/95 mt-1 whitespace-nowrap"
+            />
+            <ScrambleText
+              text="Carbon · Atomic No. 6"
+              show={show}
+              delay={0.9}
+              className="block text-lg font-bold text-foreground/95 mt-1 whitespace-nowrap"
               style={{ fontFamily: "'Orbitron', 'Space Grotesk', sans-serif", letterSpacing: "0.08em" }}
-            >
-              Carbon · Atomic No. 6
-            </div>
+            />
           </div>
         </CustomPointer>
 
@@ -415,28 +467,29 @@ function AnnotationPointers({ show }: { show: boolean }) {
         <CustomPointer
           show={show}
           delay={0.4}
-          startX={64}
-          startY={64}
+          startX={72}
+          startY={72}
           endX={105}
           endY={95}
           labelLeft="calc(105% + 16px)"
           labelTop="92%"
         >
           <div className="w-[380px]">
-            <div
-              className="text-[10px] uppercase tracking-[0.35em] text-accent mb-2"
+            <ScrambleText
+              text="One fiber · Infinite applications"
+              show={show}
+              delay={0.4 + 0.85}
+              className="block text-[11px] font-bold uppercase tracking-[0.35em] text-accent mb-2"
               style={{ fontFamily: "'JetBrains Mono', ui-monospace, monospace" }}
-            >
-              One fiber · Infinite applications
-            </div>
-            <div className="text-sm text-muted-foreground leading-relaxed mb-4">
+            />
+            <div className="text-[15px] font-semibold text-muted-foreground leading-relaxed mb-4">
               Tangent crafts aerospace-grade carbon fiber and high-purity specialty
               chemicals for the industries shaping tomorrow.
             </div>
-            <div className="flex flex-col gap-1 text-xs text-muted-foreground/80 font-mono">
-              <div className="text-foreground/90 font-medium">T-1100 / 12K</div>
-              <div>6.4 GPa tensile · 350 GPa modulus</div>
-              <div>ISO-9001 · 99.99% purity</div>
+            <div className="flex flex-col gap-1 text-[13px] font-bold text-muted-foreground/80 font-mono">
+              <ScrambleText text="T-1100 / 12K" show={show} delay={0.4 + 1.0} className="text-foreground/90" />
+              <ScrambleText text="6.4 GPa tensile · 350 GPa modulus" show={show} delay={0.4 + 1.1} />
+              <ScrambleText text="ISO-9001 · 99.99% purity" show={show} delay={0.4 + 1.2} />
             </div>
           </div>
         </CustomPointer>
