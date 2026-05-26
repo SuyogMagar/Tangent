@@ -257,8 +257,10 @@ function MolecularOrb({
 
     if (group.current) {
       const riseY = THREE.MathUtils.lerp(-3.4, 0, introE);
-      // Object stays in the middle initially, slides right on scroll
-      const baseX = THREE.MathUtils.lerp(0.7, 2.4, easeInOutCubic(s));
+    // Object stays in the middle initially, slides right on scroll (finishes by 1 viewport height)
+    const vh = typeof window !== "undefined" ? window.innerHeight : 1000;
+    const scrollProgress = THREE.MathUtils.clamp(scrollY.get() / vh, 0, 1);
+    const baseX = THREE.MathUtils.lerp(0.7, 2.4, easeInOutCubic(scrollProgress));
       group.current.position.set(
         baseX + mouse.current.x * 0.12,
         riseY + mouse.current.y * 0.1 + Math.sin(t * 0.6) * 0.03,
@@ -287,7 +289,7 @@ function CameraRig({
 }) {
   useFrame((state) => {
     const s = scrollY.get();
-    const z = 4.2; // Keep constant distance, do not zoom out on scroll
+    const z = 8.8; // Keep constant distance, do not zoom out on scroll
     const x = mouse.current.x * 0.15;
     const y = mouse.current.y * 0.12;
     state.camera.position.lerp(new THREE.Vector3(x, y, z), 0.06);
@@ -297,7 +299,7 @@ function CameraRig({
 }
 
 export function Scene3D() {
-  const { scrollYProgress } = useScroll();
+  const { scrollY } = useScroll();
   const mouse = useRef({ x: 0, y: 0 });
   const [settled, setSettled] = useState(false);
   const [scrolled, setScrolled] = useState(false);
@@ -322,12 +324,12 @@ export function Scene3D() {
     <>
       <div className="fixed inset-0 z-10 pointer-events-none">
         <Canvas
-          camera={{ position: [0, 0, 4.2], fov: 50 }}
+          camera={{ position: [0, 0, 8.8], fov: 25 }}
           dpr={[1, 2]}
           gl={{ antialias: true, alpha: true }}
         >
           <Suspense fallback={null}>
-            <CameraRig scrollY={scrollYProgress} mouse={mouse} />
+            <CameraRig scrollY={scrollY} mouse={mouse} />
             <ambientLight intensity={0.4} />
             <directionalLight position={[4, 5, 4]} intensity={1.3} color="#ffd9a8" />
             <directionalLight position={[-4, -2, -3]} intensity={0.6} color="#5fb8d6" />
@@ -335,7 +337,7 @@ export function Scene3D() {
             <pointLight position={[-2, 1, 1]} intensity={1.0} color="#5fb8d6" distance={8} />
 
             <MolecularOrb
-              scrollY={scrollYProgress}
+              scrollY={scrollY}
               mouse={mouse}
               onSettled={() => setSettled(true)}
             />
@@ -434,16 +436,15 @@ function AnnotationPointers({ show }: { show: boolean }) {
     <div className="fixed inset-0 z-20 pointer-events-none flex items-center justify-center ml-[12vw] md:ml-[16vw]">
       <div className="relative w-[520px] h-[520px] max-w-[80vw] max-h-[80vw]">
 
-        {/* Pointer 1: Carbon element - Bottom Left */}
+        {/* Pointer 1: Carbon element - Top Right */}
         <CustomPointer
           show={show}
-          startX={28}
-          startY={72}
-          endX={-5}
-          endY={95}
-          labelRight="calc(105% + 16px)"
-          labelTop="92%"
-          alignRight={true}
+          startX={82}
+          startY={18}
+          endX={105}
+          endY={5}
+          labelLeft="calc(105% + 16px)"
+          labelTop="2%"
         >
           <div className="w-[300px]">
             <ScrambleText
@@ -467,8 +468,8 @@ function AnnotationPointers({ show }: { show: boolean }) {
         <CustomPointer
           show={show}
           delay={0.4}
-          startX={72}
-          startY={72}
+          startX={82}
+          startY={82}
           endX={105}
           endY={95}
           labelLeft="calc(105% + 16px)"
