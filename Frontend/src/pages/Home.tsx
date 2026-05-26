@@ -39,9 +39,9 @@ export function Hero() {
         style={{ y, opacity }}
         className={`w-full relative z-0 px-8 md:px-16 lg:px-24 flex ${isCentered ? "justify-center" : "justify-start"}`}
       >
-        <motion.div 
+        <motion.div
           layout
-          transition={{ duration: 1.5, ease: [0.25, 1, 0.15, 1] }} 
+          transition={{ duration: 1.5, ease: [0.25, 1, 0.15, 1] }}
           className="text-left"
         >
           <motion.div
@@ -61,19 +61,19 @@ export function Hero() {
               </motion.p>
             )}
           </motion.div>
-          
+
           <motion.div layout className="max-w-3xl">
             <motion.h1
               layout
               initial={{ opacity: 0, y: 30, filter: "blur(12px)", scale: 1.0 }}
-              animate={{ 
-                opacity: 1, 
-                y: 0, 
-                filter: "blur(0px)", 
-                scale: isCentered ? 1.0 : 0.85 
+              animate={{
+                opacity: 1,
+                y: 0,
+                filter: "blur(0px)",
+                scale: isCentered ? 1.0 : 0.85
               }}
               style={{ originX: isCentered ? 0.5 : 0, originY: 0.5 }}
-              transition={{ 
+              transition={{
                 layout: { duration: 1.5, ease: [0.25, 1, 0.15, 1] },
                 scale: { duration: 1.5, ease: [0.25, 1, 0.15, 1] },
                 opacity: { duration: 1.4, ease: "easeOut" },

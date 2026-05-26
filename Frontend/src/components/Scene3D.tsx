@@ -33,7 +33,7 @@ export function ScrambleText({ text, show, delay = 0, className, style }: { text
     let timeout: ReturnType<typeof setTimeout>;
     let frameId: number;
     let iteration = 0;
-    
+
     timeout = setTimeout(() => {
       const animate = () => {
         setDisplayText(() =>
@@ -48,7 +48,7 @@ export function ScrambleText({ text, show, delay = 0, className, style }: { text
             })
             .join("")
         );
-        
+
         if (iteration >= text.length) {
           cancelAnimationFrame(frameId);
         } else {
@@ -56,7 +56,7 @@ export function ScrambleText({ text, show, delay = 0, className, style }: { text
           frameId = requestAnimationFrame(animate);
         }
       };
-      
+
       frameId = requestAnimationFrame(animate);
     }, delay * 1000);
 
@@ -94,7 +94,7 @@ function MolecularOrb({
     const radius = 1.0;
     const detail = 5; // Yields 720 faces (nodes in dual graph). Dense nanostructure.
     const geo = new THREE.IcosahedronGeometry(radius, detail);
-    
+
     let pos: ArrayLike<number> = geo.attributes.position.array;
     let idx: ArrayLike<number> | null = geo.index ? geo.index.array : null;
 
@@ -104,9 +104,9 @@ function MolecularOrb({
       const newIdx: number[] = [];
       const vMap = new Map<string, number>();
       let vCount = 0;
-      
+
       for (let i = 0; i < pos.length; i += 3) {
-        const x = pos[i], y = pos[i+1], z = pos[i+2];
+        const x = pos[i], y = pos[i + 1], z = pos[i + 2];
         const key = `${x.toFixed(4)},${y.toFixed(4)},${z.toFixed(4)}`;
         if (!vMap.has(key)) {
           vMap.set(key, vCount++);
@@ -126,14 +126,14 @@ function MolecularOrb({
       const vA = new THREE.Vector3(pos[a * 3], pos[a * 3 + 1], pos[a * 3 + 2]);
       const vB = new THREE.Vector3(pos[b * 3], pos[b * 3 + 1], pos[b * 3 + 2]);
       const vC = new THREE.Vector3(pos[c * 3], pos[c * 3 + 1], pos[c * 3 + 2]);
-      
+
       // Node is the centroid of the face, projected to sphere surface
       const center = vA.clone().add(vB).add(vC).divideScalar(3).normalize().multiplyScalar(radius);
       computedNodes.push(center);
 
       const faceIdx = i / 3;
       const faceVertices = [a, b, c];
-      
+
       // Map edges to find adjacent faces
       for (let j = 0; j < 3; j++) {
         const v1 = faceVertices[j];
@@ -141,7 +141,7 @@ function MolecularOrb({
         const min = Math.min(v1, v2);
         const max = Math.max(v1, v2);
         const key = `${min}-${max}`;
-        
+
         if (!edgeMap.has(key)) {
           edgeMap.set(key, []);
         }
@@ -207,7 +207,7 @@ function MolecularOrb({
         const { p1, p2 } = rod;
         const center = new THREE.Vector3().addVectors(p1, p2).multiplyScalar(0.5);
         const length = p1.distanceTo(p2);
-        
+
         dummy.position.copy(center);
         dummy.lookAt(p2);
         dummy.rotateX(Math.PI / 2); // align cylinder with Z axis from lookAt
@@ -433,7 +433,7 @@ function AnnotationPointers({ show }: { show: boolean }) {
   return (
     <div className="fixed inset-0 z-20 pointer-events-none flex items-center justify-center ml-[12vw] md:ml-[16vw]">
       <div className="relative w-[520px] h-[520px] max-w-[80vw] max-h-[80vw]">
-        
+
         {/* Pointer 1: Carbon element - Bottom Left */}
         <CustomPointer
           show={show}
@@ -493,7 +493,7 @@ function AnnotationPointers({ show }: { show: boolean }) {
             </div>
           </div>
         </CustomPointer>
-        
+
       </div>
     </div>
   );
