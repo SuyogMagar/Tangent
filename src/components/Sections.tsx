@@ -37,7 +37,7 @@ export function Hero() {
     <section id="top" ref={ref} className="relative min-h-screen flex items-center">
       <motion.div
         style={{ y, opacity }}
-        className={`w-full relative z-10 px-8 md:px-16 lg:px-24 flex ${isCentered ? "justify-center" : "justify-start"}`}
+        className={`w-full relative z-0 px-8 md:px-16 lg:px-24 flex ${isCentered ? "justify-center" : "justify-start"}`}
       >
         <motion.div 
           layout
@@ -55,7 +55,7 @@ export function Hero() {
                 initial={{ opacity: 0, y: 10, filter: "blur(10px)" }}
                 animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
                 transition={{ duration: 0.8 }}
-                className="text-xs uppercase tracking-[0.3em] text-primary"
+                className="text-sm md:text-base uppercase tracking-[0.3em] text-primary font-semibold"
               >
                 Advanced Materials · Est. 2014
               </motion.p>
@@ -80,7 +80,7 @@ export function Hero() {
                 filter: { duration: 1.4, ease: "easeOut" },
                 y: { duration: 1.4, ease: "easeOut" }
               }}
-              className="text-5xl md:text-7xl lg:text-[5.5rem] xl:text-[6.5rem] font-bold leading-[0.9]"
+              className="text-6xl md:text-8xl lg:text-[7rem] xl:text-[8.5rem] font-bold leading-[0.9]"
             >
               Engineered <span className="text-gradient">at the edge</span> of matter.
             </motion.h1>
@@ -101,13 +101,13 @@ export function Hero() {
               >
                 <a
                   href="#carbon"
-                  className="px-5 py-3 rounded-full bg-primary text-primary-foreground font-medium shadow-glow hover:scale-[1.02] transition"
+                  className="px-6 py-4 text-lg rounded-full bg-primary text-primary-foreground font-medium shadow-glow hover:scale-[1.02] transition"
                 >
                   Explore materials
                 </a>
                 <a
                   href="#process"
-                  className="px-5 py-3 rounded-full border border-border/60 hover:bg-secondary transition"
+                  className="px-6 py-4 text-lg rounded-full border border-border/60 hover:bg-secondary transition"
                 >
                   See process
                 </a>

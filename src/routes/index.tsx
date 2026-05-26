@@ -40,7 +40,7 @@ function Index() {
   return (
     <div className="relative bg-hero min-h-screen overflow-x-hidden">
       <Scene3D />
-      <div className="relative z-10">
+      <div className="relative z-0">
         <Nav />
         <Hero />
         <CarbonSection />

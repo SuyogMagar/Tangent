@@ -208,7 +208,7 @@ function MolecularOrb({
     if (group.current) {
       const riseY = THREE.MathUtils.lerp(-3.4, 0, introE);
       // Object stays in the middle initially, slides right on scroll
-      const baseX = THREE.MathUtils.lerp(0, 1.9, easeInOutCubic(s));
+      const baseX = THREE.MathUtils.lerp(0.7, 2.4, easeInOutCubic(s));
       group.current.position.set(
         baseX + mouse.current.x * 0.12,
         riseY + mouse.current.y * 0.1 + Math.sin(t * 0.6) * 0.03,
@@ -270,7 +270,7 @@ export function Scene3D() {
 
   return (
     <>
-      <div className="fixed inset-0 -z-0 pointer-events-none">
+      <div className="fixed inset-0 z-10 pointer-events-none">
         <Canvas
           camera={{ position: [0, 0, 4.2], fov: 50 }}
           dpr={[1, 2]}
@@ -307,6 +307,7 @@ function CustomPointer({
   endX,
   endY,
   labelLeft,
+  labelRight,
   labelTop,
   alignRight,
   delay = 0,
@@ -317,7 +318,8 @@ function CustomPointer({
   startY: number;
   endX: number;
   endY: number;
-  labelLeft: string;
+  labelLeft?: string;
+  labelRight?: string;
   labelTop: string;
   alignRight?: boolean;
   delay?: number;
@@ -338,13 +340,11 @@ function CustomPointer({
             viewBox="0 0 100 100"
             preserveAspectRatio="none"
           >
-            <motion.line
-              x1={startX}
-              y1={startY}
-              x2={endX}
-              y2={endY}
-              stroke="oklch(0.85 0.13 75)"
-              strokeWidth="0.25"
+            <motion.path
+              d={`M ${startX} ${startY} L ${alignRight ? endX + 12 : endX - 12} ${endY} L ${endX} ${endY}`}
+              fill="none"
+              stroke="oklch(0.45 0.15 75)"
+              strokeWidth="0.4"
               initial={{ pathLength: 0, opacity: 0 }}
               animate={{ pathLength: 1, opacity: 1 }}
               transition={{ duration: 0.8, ease: "easeOut", delay }}
@@ -352,8 +352,8 @@ function CustomPointer({
             <motion.circle
               cx={startX}
               cy={startY}
-              r="0.8"
-              fill="oklch(0.85 0.13 75)"
+              r="1.0"
+              fill="oklch(0.45 0.15 75)"
               initial={{ scale: 0 }}
               animate={{ scale: 1 }}
               transition={{ delay: delay + 0.7 }}
@@ -366,6 +366,7 @@ function CustomPointer({
             className="absolute"
             style={{
               left: labelLeft,
+              right: labelRight,
               top: labelTop,
               textAlign: alignRight ? "right" : "left",
             }}
@@ -380,18 +381,19 @@ function CustomPointer({
 
 function AnnotationPointers({ show }: { show: boolean }) {
   return (
-    <div className="fixed inset-0 -z-0 pointer-events-none flex items-center justify-center">
+    <div className="fixed inset-0 z-20 pointer-events-none flex items-center justify-center ml-[12vw] md:ml-[16vw]">
       <div className="relative w-[520px] h-[520px] max-w-[80vw] max-h-[80vw]">
         
-        {/* Pointer 1: Carbon element - Top Right */}
+        {/* Pointer 1: Carbon element - Bottom Left */}
         <CustomPointer
           show={show}
-          startX={64}
-          startY={36}
-          endX={105}
-          endY={5}
-          labelLeft="calc(105% + 12px)"
-          labelTop="0%"
+          startX={36}
+          startY={64}
+          endX={-5}
+          endY={95}
+          labelRight="calc(105% + 16px)"
+          labelTop="92%"
+          alignRight={true}
         >
           <div className="w-[300px]">
             <div
